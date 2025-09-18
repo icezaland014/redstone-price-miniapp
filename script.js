@@ -1,6 +1,4 @@
-// === Config ===
-// Base endpoint for RedStone Price API (Data Service).
-// Public endpoint typically: https://api.redstone.finance/prices?symbol=ETH
+// === RedStone Price MiniApp (smart fetch with RED support) ===
 const API_BASE = "https://api.redstone.finance/prices";
 
 const $ = (id) => document.getElementById(id);
@@ -25,33 +23,83 @@ function fmtAge(ts) {
   return `${h}h ago`;
 }
 
-async function fetchPrice(symbol, provider) {
+// ---- helpers for multi-attempt fetching ----
+function getAliases(symbol) {
+  const s = symbol.toUpperCase();
+  if (s === "RED") return ["RED", "REDSTONE"]; // try both
+  return [s];
+}
+
+async function fetchFrom(sym, { provider, source } = {}) {
   const url = new URL(API_BASE);
-  url.searchParams.set("symbol", symbol);
+  url.searchParams.set("symbol", sym);
   if (provider) url.searchParams.set("provider", provider);
+  if (source) url.searchParams.set("source", source);
+
   const res = await fetch(url.toString(), { cache: "no-store" });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   const data = await res.json();
-  return Array.isArray(data) ? data[0] : data;
+  const obj = Array.isArray(data) ? data[0] : data;
+  const val = obj?.value ?? obj?.price ?? obj?.latestPrice;
+  if (val == null) throw new Error("no price in response");
+  return obj;
+}
+
+/**
+ * Try multiple plans until one returns a price.
+ * Plans order:
+ *  - Explicit provider (if user chose)
+ *  - Auto (no provider)
+ *  - redstone-primary-prod
+ *  - source=coingecko (fallback)
+ */
+async function fetchPriceSmart(symbol, chosenProvider) {
+  const aliases = getAliases(symbol);
+  const plans = [];
+
+  if (chosenProvider) {
+    for (const a of aliases) plans.push({ sym: a, provider: chosenProvider, label: chosenProvider });
+  } else {
+    for (const a of aliases) {
+      plans.push({ sym: a, label: "auto" }); // no provider param
+      plans.push({ sym: a, provider: "redstone-primary-prod", label: "redstone-primary-prod" });
+      // Fallback through RedStone API using external source
+      plans.push({ sym: a, source: "coingecko", label: "source:coingecko" });
+    }
+  }
+
+  let lastErr;
+  for (const p of plans) {
+    try {
+      const obj = await fetchFrom(p.sym, { provider: p.provider, source: p.source });
+      return { obj, resolved: p.label };
+    } catch (e) {
+      lastErr = e;
+      // try next plan
+    }
+  }
+  throw lastErr || new Error("price not found");
 }
 
 async function update() {
   const symbol = $("symbol").value.trim().toUpperCase();
-  const provider = $("provider").value;
+  const provider = $("provider").value || undefined;
   $("sym").textContent = symbol;
-  $("status").textContent = "กำลังโหลด…";
+  $("status").textContent = "Loading…";
 
   try {
-    const p = await fetchPrice(symbol, provider || undefined);
+    const { obj, resolved } = await fetchPriceSmart(symbol, provider);
 
-    $("price").textContent = fmtNumber(p.value ?? p.price ?? p.latestPrice);
-    $("prov").textContent = p.provider || provider || "auto";
-    $("time").textContent = fmtTime(p.timestamp || p.updatedAt || Date.now());
-    $("age").textContent = fmtAge(p.timestamp || p.updatedAt || Date.now());
-    $("signer").textContent = (p.metadata && (p.metadata.signer || p.metadata.source)) || p.signer || "—";
-    $("status").textContent = "อัปเดตแล้ว";
+    $("price").textContent = fmtNumber(obj.value ?? obj.price ?? obj.latestPrice);
+    $("prov").textContent = obj.provider || resolved || "auto";
+    const ts = obj.timestamp || obj.updatedAt || Date.now();
+    $("time").textContent = fmtTime(ts);
+    $("age").textContent = fmtAge(ts);
+    $("signer").textContent = (obj.metadata && (obj.metadata.signer || obj.metadata.source)) || obj.signer || "—";
+    $("status").textContent = "Updated";
   } catch (err) {
-    $("status").textContent = "มีข้อผิดพลาด: " + err.message;
+    $("status").textContent = "Error: " + err.message;
+    $("price").textContent = "—";
     console.error(err);
   }
 }
@@ -61,32 +109,25 @@ function setIntervalHandler(ms) {
   if (ms > 0) timer = setInterval(update, ms);
 }
 
-$("refresh").addEventListener("click", update);
-$("controls").addEventListener("change", () => {
-  const ms = Number($("interval").value);
-  setIntervalHandler(ms);
-  update();
-});
-
-// init
-setIntervalHandler(Number($("interval").value));
-update();
-
-
+// Farcaster splash: call ready() once UI is up
 function farcasterReady() {
   try {
     const sdk = window.FarcasterMiniApps?.createClient?.() || window.FarcasterMiniApps?.client;
-    if (sdk?.actions?.ready) {
-      sdk.actions.ready();
-      console.log("Farcaster MiniApp ready()");
-      return;
-    }
-    window?.farcaster?.actions?.ready?.();
-  } catch (e) {
-    console.warn("farcaster ready failed (non-critical):", e);
-  }
+    if (sdk?.actions?.ready) sdk.actions.ready();
+    else window?.farcaster?.actions?.ready?.();
+  } catch (_) {}
 }
 
+// init
 document.addEventListener("DOMContentLoaded", () => {
+  $("refresh").addEventListener("click", update);
+  $("controls").addEventListener("change", () => {
+    const ms = Number($("interval").value);
+    setIntervalHandler(ms);
+    update();
+  });
+
+  setIntervalHandler(Number($("interval").value));
+  update();
   farcasterReady();
 });

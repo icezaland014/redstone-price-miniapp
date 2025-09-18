@@ -1,6 +1,6 @@
 {
   "name": "RedStone Price MiniApp",
   "description": "แสดงราคาเหรียญจาก RedStone Price API แบบเรียลไทม์",
-  "url": "https://YOUR-DOMAIN.example",
-  "icon": "https://YOUR-DOMAIN.example/icon.png"
+  "url": "https://redstone-price-miniapp.vercel.app",
+  "icon": "https://redstone-price-miniapp.vercel.app/icon.png"
 }

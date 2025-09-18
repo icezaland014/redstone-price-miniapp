@@ -1,11 +1,12 @@
-// RED Quick Stats — RedStone (frontend-only)
+// RED Quick Stats — RedStone (frontend-only, with smart fallback)
 const API_BASE = "https://api.redstone.finance/prices";
 const DEFAULT_SYMBOL = "RED";
 
 const $ = (id) => document.getElementById(id);
 let latest = { price: null, provider: "auto" };
 
-// ---------- formatting ----------
+// ---------- format helpers ----------
+const valOf = (obj) => obj?.value ?? obj?.price ?? obj?.latestPrice ?? null;
 const fmtNumber = (n) =>
   n == null ? "—" : Number(n).toLocaleString(undefined, { maximumFractionDigits: 6 });
 const fmtTime = (ts) => new Date(ts).toLocaleString();
@@ -19,11 +20,10 @@ function fmtAge(ts) {
   return `${h}h ago`;
 }
 
-// ---------- fetch helpers ----------
-function aliasesForRed(symbol) {
-  // try common aliases for RedStone token
-  if (symbol.toUpperCase() === "RED") return ["RED", "REDSTONE"];
-  return [symbol.toUpperCase()];
+// ---------- fetch core ----------
+function aliases(symbol) {
+  const s = symbol.toUpperCase();
+  return s === "RED" ? ["RED", "REDSTONE"] : [s];
 }
 
 async function fetchOnce(sym, { provider, source } = {}) {
@@ -36,21 +36,19 @@ async function fetchOnce(sym, { provider, source } = {}) {
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   const data = await res.json();
   const obj = Array.isArray(data) ? data[0] : data;
-  const val = obj?.value ?? obj?.price ?? obj?.latestPrice;
-  if (val == null) throw new Error("no price in response");
+  if (valOf(obj) == null) throw new Error("no price in response");
   return obj;
 }
 
+/** Try multiple plans until one returns a price. */
 async function fetchSmart(symbol) {
-  const aliases = aliasesForRed(symbol);
+  const al = aliases(symbol);
   const plans = [];
-  for (const a of aliases) {
-    plans.push({ sym: a, label: "auto" }); // no provider
+  for (const a of al) {
+    plans.push({ sym: a, label: "auto" }); // no provider param
     plans.push({ sym: a, provider: "redstone-primary-prod", label: "redstone-primary-prod" });
-    // fallback to external source proxied by RedStone API
-    plans.push({ sym: a, source: "coingecko", label: "source:coingecko" });
+    plans.push({ sym: a, source: "coingecko", label: "source:coingecko" }); // fallback
   }
-
   let lastErr;
   for (const p of plans) {
     try {
@@ -63,25 +61,23 @@ async function fetchSmart(symbol) {
   throw lastErr || new Error("price not found");
 }
 
-// Try to approximate 24h change using a fallback source if available
-async function tryFetch24hChange(symbol) {
+/** Try to get 24h change via coingecko source (graceful if not available). */
+async function fetch24hChange(symbol) {
   try {
     const url = new URL(API_BASE);
     url.searchParams.set("symbol", symbol);
-    url.searchParams.set("source", "coingecko"); // use coingecko series if available
-    // Some deployments support `period=24h` returning { value, previousValue }
-    url.searchParams.set("period", "24h");
+    url.searchParams.set("source", "coingecko");
+    url.searchParams.set("period", "24h"); // some deployments return previousValue
     const res = await fetch(url.toString(), { cache: "no-store" });
     if (!res.ok) throw new Error("no series");
     const data = await res.json();
     const obj = Array.isArray(data) ? data[0] : data;
-    const now = obj?.value ?? obj?.price ?? null;
+    const now = valOf(obj);
     const prev = obj?.previousValue ?? null;
     if (now == null || prev == null) throw new Error("insufficient series");
-    const pct = ((now - prev) / prev) * 100;
-    return pct;
+    return ((now - prev) / prev) * 100;
   } catch {
-    return null; // graceful fallback
+    return null;
   }
 }
 
@@ -90,16 +86,17 @@ async function update() {
   $("sym").textContent = DEFAULT_SYMBOL;
   $("status").textContent = "Loading…";
   $("change").textContent = "—";
+  $("change").removeAttribute("data-up");
 
   try {
     const { obj, resolved } = await fetchSmart(DEFAULT_SYMBOL);
-    const val = obj.value ?? obj.price ?? obj.latestPrice;
+    const price = valOf(obj);
     const ts = obj.timestamp || obj.updatedAt || Date.now();
 
-    latest.price = val;
+    latest.price = price;
     latest.provider = obj.provider || resolved || "auto";
 
-    $("price").textContent = fmtNumber(val);
+    $("price").textContent = fmtNumber(price);
     $("prov").textContent = latest.provider;
     $("time").textContent = fmtTime(ts);
     $("age").textContent = fmtAge(ts);
@@ -109,15 +106,19 @@ async function update() {
       "—";
     $("status").textContent = "Updated";
 
-    // optional 24h change
-    const pct = await tryFetch24hChange(DEFAULT_SYMBOL);
+    // 24h change (optional)
+    const pct = await fetch24hChange(DEFAULT_SYMBOL);
     if (pct == null) {
       $("change").textContent = "—";
+      $("change").style.borderColor = "var(--border)";
+      $("change").style.color = "var(--muted)";
     } else {
       const sign = pct >= 0 ? "+" : "";
       $("change").textContent = `${sign}${pct.toFixed(2)}%`;
-      $("change").style.borderColor = pct >= 0 ? "rgba(16,185,129,.5)" : "rgba(239,68,68,.5)";
-      $("change").style.color = pct >= 0 ? "rgb(16,185,129)" : "rgb(239,68,68)";
+      const up = pct >= 0;
+      $("change").style.borderColor = up ? "rgba(16,185,129,.5)" : "rgba(239,68,68,.5)";
+      $("change").style.color = up ? "rgb(16,185,129)" : "rgb(239,68,68)";
+      $("change").setAttribute("data-up", up ? "1" : "0");
     }
   } catch (err) {
     $("status").textContent = "Error: " + err.message;
@@ -145,8 +146,12 @@ function farcasterReady() {
 
 // ---------- Init ----------
 document.addEventListener("DOMContentLoaded", () => {
-  $("refresh").addEventListener("click", update);
-  $("share").addEventListener("click", shareToWarpcast);
+  const refreshBtn = $("refresh");
+  if (refreshBtn) refreshBtn.addEventListener("click", update);
+
+  const shareBtn = $("share");
+  if (shareBtn) shareBtn.addEventListener("click", shareToWarpcast);
+
   update();
   farcasterReady();
 });

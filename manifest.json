@@ -1,0 +1,6 @@
+{
+  "name": "RedStone Price MiniApp",
+  "description": "แสดงราคาเหรียญจาก RedStone Price API แบบเรียลไทม์",
+  "url": "https://YOUR-DOMAIN.example",
+  "icon": "https://YOUR-DOMAIN.example/icon.png"
+}

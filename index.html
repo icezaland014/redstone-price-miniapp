@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>RedStone Price MiniApp</title>
+  <link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+  <main class="container">
+    <header class="head">
+      <h1>📈 RedStone Price</h1>
+      <button id="refresh">รีเฟรช</button>
+    </header>
+
+    <section class="card">
+      <form id="controls" class="controls">
+        <label>เหรียญ
+          <select id="symbol">
+            <option>BTC</option>
+            <option>ETH</option>
+            <option>BNB</option>
+            <option>SOL</option>
+            <option>MATIC</option>
+            <option>ARB</option>
+            <option>OP</option>
+            <option>KUB</option>
+          </select>
+        </label>
+        <label>ผู้ให้ข้อมูล (provider)
+          <select id="provider">
+            <option value="">(auto)</option>
+            <option value="redstone-primary-prod">redstone-primary-prod</option>
+            <option value="redstone-stocks">redstone-stocks</option>
+          </select>
+        </label>
+        <label>รีเฟรชอัตโนมัติ
+          <select id="interval">
+            <option value="0">ปิด</option>
+            <option value="5000">ทุก 5 วินาที</option>
+            <option value="15000" selected>ทุก 15 วินาที</option>
+            <option value="60000">ทุก 60 วินาที</option>
+          </select>
+        </label>
+      </form>
+    </section>
+
+    <section class="card big">
+      <div class="price-row">
+        <div class="symbol" id="sym">ETH</div>
+        <div class="price" id="price">—</div>
+      </div>
+      <div class="meta">
+        <div>provider: <span id="prov">—</span></div>
+        <div>timestamp: <span id="time">—</span> (<span id="age">—</span>)</div>
+        <div>signer: <span id="signer">—</span></div>
+      </div>
+      <div id="status" class="status">พร้อม</div>
+    </section>
+
+    <footer>
+      <small>ข้อมูลดึงจาก RedStone Price API (frontend). สำหรับแสดงผลเท่านั้น ไม่ใช้ทำธุรกรรม on-chain</small>
+    </footer>
+  </main>
+  <script src="./script.js"></script>
+</body>
+</html>

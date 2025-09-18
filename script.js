@@ -71,3 +71,22 @@ $("controls").addEventListener("change", () => {
 // init
 setIntervalHandler(Number($("interval").value));
 update();
+
+
+function farcasterReady() {
+  try {
+    const sdk = window.FarcasterMiniApps?.createClient?.() || window.FarcasterMiniApps?.client;
+    if (sdk?.actions?.ready) {
+      sdk.actions.ready();
+      console.log("Farcaster MiniApp ready()");
+      return;
+    }
+    window?.farcaster?.actions?.ready?.();
+  } catch (e) {
+    console.warn("farcaster ready failed (non-critical):", e);
+  }
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  farcasterReady();
+});

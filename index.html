@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>RedStone Price MiniApp</title>
+  <title>RED Quick Stats — RedStone</title>
   <link rel="stylesheet" href="./style.css" />
 </head>
 <body>
@@ -12,55 +12,20 @@
     <header class="app-header">
       <div class="brand">
         <div class="logo-dot"></div>
-        <h1>RedStone Price</h1>
+        <h1>RED Quick Stats</h1>
       </div>
-      <button id="refresh" class="btn-primary">Refresh</button>
+      <div class="actions">
+        <button id="refresh" class="btn-primary">Refresh</button>
+        <button id="share" class="btn-primary" style="margin-left:8px;">Share</button>
+      </div>
     </header>
 
-    <!-- Controls -->
-    <section class="card controls-card">
-      <form id="controls" class="controls">
-        <label class="control">
-          <span class="label">Asset</span>
-          <select id="symbol" class="select">
-            <option>BTC</option>
-            <option>ETH</option>
-            <option>BNB</option>
-            <option>SOL</option>
-            <option>MATIC</option>
-            <option>ARB</option>
-            <option>OP</option>
-            <option>KUB</option>
-            <option selected>RED</option>
-          </select>
-        </label>
-
-        <label class="control">
-          <span class="label">Provider</span>
-          <select id="provider" class="select">
-            <option value="">Auto</option>
-            <option value="redstone-primary-prod">redstone-primary-prod</option>
-            <option value="redstone-stocks">redstone-stocks</option>
-          </select>
-        </label>
-
-        <label class="control">
-          <span class="label">Auto refresh</span>
-          <select id="interval" class="select">
-            <option value="0">Off</option>
-            <option value="5000">Every 5s</option>
-            <option value="15000" selected>Every 15s</option>
-            <option value="60000">Every 60s</option>
-          </select>
-        </label>
-      </form>
-    </section>
-
-    <!-- Price panel -->
+    <!-- Stats Card -->
     <section class="card big">
       <div class="price-row">
-        <span class="symbol-badge" id="sym">ETH</span>
+        <span class="symbol-badge" id="sym">RED</span>
         <span class="price" id="price">—</span>
+        <!-- Optional 24h change slot; script will fill if available -->
         <span class="change" id="change">—</span>
       </div>
 
@@ -87,14 +52,30 @@
       </div>
     </section>
 
+    <!-- Links -->
+    <section class="card" style="margin-top:12px;">
+      <div class="meta" style="grid-template-columns:1fr 1fr;">
+        <a class="meta-item" href="https://redstone.finance" target="_blank" rel="noopener">
+          <span class="k">Website</span><span class="v">redstone.finance ↗</span>
+        </a>
+        <a class="meta-item" href="https://docs.redstone.finance" target="_blank" rel="noopener">
+          <span class="k">Docs</span><span class="v">docs.redstone.finance ↗</span>
+        </a>
+        <a class="meta-item" href="https://x.com/redstone_defi" target="_blank" rel="noopener">
+          <span class="k">X (Twitter)</span><span class="v">@redstone_defi ↗</span>
+        </a>
+        <a class="meta-item" href="https://api.redstone.finance/" target="_blank" rel="noopener">
+          <span class="k">Price API</span><span class="v">api.redstone.finance ↗</span>
+        </a>
+      </div>
+    </section>
+
     <footer class="foot-note">
-      <small>
-        Data from RedStone Price API (frontend-only). For display purposes, not on-chain execution.
-      </small>
+      <small>Data via RedStone Price API. Display only (no on-chain execution).</small>
     </footer>
   </main>
 
-  <!-- Farcaster Mini Apps SDK (keep this before your app script) -->
+  <!-- Farcaster Mini Apps SDK -->
   <script src="https://unpkg.com/@farcaster/mini-apps@latest/dist/umd/index.js"></script>
   <script src="./script.js"></script>
 </body>

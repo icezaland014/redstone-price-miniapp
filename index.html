@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="th">
+<html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
@@ -8,17 +8,23 @@
 </head>
 <body>
   <main class="container">
-    <header class="head">
-      <h1>📈 RedStone Price</h1>
-      <button id="refresh">รีเฟรช</button>
+    <!-- Header -->
+    <header class="app-header">
+      <div class="brand">
+        <div class="logo-dot"></div>
+        <h1>RedStone Price</h1>
+      </div>
+      <button id="refresh" class="btn-primary">Refresh</button>
     </header>
 
-    <section class="card">
+    <!-- Controls -->
+    <section class="card controls-card">
       <form id="controls" class="controls">
-        <label>เหรียญ
-          <select id="symbol">
+        <label class="control">
+          <span class="label">Asset</span>
+          <select id="symbol" class="select">
             <option>BTC</option>
-            <option>ETH</option>
+            <option selected>ETH</option>
             <option>BNB</option>
             <option>SOL</option>
             <option>MATIC</option>
@@ -27,43 +33,68 @@
             <option>KUB</option>
           </select>
         </label>
-        <label>ผู้ให้ข้อมูล (provider)
-          <select id="provider">
-            <option value="">(auto)</option>
+
+        <label class="control">
+          <span class="label">Provider</span>
+          <select id="provider" class="select">
+            <option value="">Auto</option>
             <option value="redstone-primary-prod">redstone-primary-prod</option>
             <option value="redstone-stocks">redstone-stocks</option>
           </select>
         </label>
-        <label>รีเฟรชอัตโนมัติ
-          <select id="interval">
-            <option value="0">ปิด</option>
-            <option value="5000">ทุก 5 วินาที</option>
-            <option value="15000" selected>ทุก 15 วินาที</option>
-            <option value="60000">ทุก 60 วินาที</option>
+
+        <label class="control">
+          <span class="label">Auto refresh</span>
+          <select id="interval" class="select">
+            <option value="0">Off</option>
+            <option value="5000">Every 5s</option>
+            <option value="15000" selected>Every 15s</option>
+            <option value="60000">Every 60s</option>
           </select>
         </label>
       </form>
     </section>
 
+    <!-- Price panel -->
     <section class="card big">
       <div class="price-row">
-        <div class="symbol" id="sym">ETH</div>
-        <div class="price" id="price">—</div>
+        <span class="symbol-badge" id="sym">ETH</span>
+        <span class="price" id="price">—</span>
+        <span class="change" id="change">—</span>
       </div>
+
       <div class="meta">
-        <div>provider: <span id="prov">—</span></div>
-        <div>timestamp: <span id="time">—</span> (<span id="age">—</span>)</div>
-        <div>signer: <span id="signer">—</span></div>
+        <div class="meta-item">
+          <span class="k">Provider</span>
+          <span class="v" id="prov">—</span>
+        </div>
+        <div class="meta-item">
+          <span class="k">Timestamp</span>
+          <span class="v">
+            <span id="time">—</span>
+            <span class="age">(<span id="age">—</span>)</span>
+          </span>
+        </div>
+        <div class="meta-item">
+          <span class="k">Signer</span>
+          <span class="v" id="signer">—</span>
+        </div>
+        <div class="meta-item">
+          <span class="k">Status</span>
+          <span class="status-chip" id="status">Ready</span>
+        </div>
       </div>
-      <div id="status" class="status">พร้อม</div>
     </section>
 
-    <footer>
-      <small>ข้อมูลดึงจาก RedStone Price API (frontend). สำหรับแสดงผลเท่านั้น ไม่ใช้ทำธุรกรรม on-chain</small>
+    <footer class="foot-note">
+      <small>
+        Data from RedStone Price API (frontend-only). For display purposes, not on-chain execution.
+      </small>
     </footer>
   </main>
-<!-- Farcaster Mini Apps SDK -->
-<script src="https://unpkg.com/@farcaster/mini-apps@latest/dist/umd/index.js"></script>
+
+  <!-- Farcaster Mini Apps SDK (keep this before your app script) -->
+  <script src="https://unpkg.com/@farcaster/mini-apps@latest/dist/umd/index.js"></script>
   <script src="./script.js"></script>
 </body>
 </html>
